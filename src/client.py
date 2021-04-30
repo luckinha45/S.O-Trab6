@@ -5,6 +5,9 @@
 #
 # @section description_main Descrição
 # Documentação do trabalho 6 da disciplina de Sistemas Operacionais
+# @section how_works Como Funciona
+# Para testar o sistema, coloque ele em diferentes diretórios e abra um terminal no src de cada diretório. Em cada terminal, para rodar os usuarios, entre com:<br/>
+# > python client.py localhost
 #
 # @section libraries_main Libraries/Modules
 # - os e shutil
@@ -14,7 +17,7 @@
 # - xmlrpc
 #   - Cria as coneções RPC.
 #
-# @section author_doxygen_example Autores(s)
+# @section author_doxygen_example Autor(es)
 # - Criado por Lucas Antonio e Luca Biagini em 30/04/2021.
 #
 ##
