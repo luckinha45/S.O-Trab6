@@ -3,3 +3,4 @@ src/files
 src/copies
 src/aux
 html
+src/__pycache__/
