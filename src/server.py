@@ -29,6 +29,27 @@ allUsers = []
 
 #region FUNCOES REGISTRADAS NO RPC
 
+def rpc_connToUser(usrHost, usrPort):
+    """! Avisa ao usuário que outro usuário quer entrar na conexão.
+
+    @param usrHost host do usuario que quer se conectar.
+    @param usrPort porta do usuário que quer se conectar.
+    """
+
+    global host, port
+
+    if len(allUsers) > 4:
+        return None
+    
+    # avisa aos outros usuarios q um novo usuario quer entrar na conexao
+    for user in allUsers:
+        if (user["host"] != host) or (user["port"] != port):
+            with xmlrpc.client.ServerProxy(f"http://{user['host']}:{user['port']}/", allow_none=True) as proxy:
+                proxy.rpc_newUser(usrHost, usrPort)
+    
+    rpc_newUser(usrHost, usrPort)
+    return allUsers
+
 def rpc_removeUser(host, port):
     """! Remove um usuário da lista allUsers.
 
@@ -337,43 +358,68 @@ def userDropped(rmHost, rmPort):
         with xmlrpc.client.ServerProxy(f"http://{f['host']}:{f['port']}/", allow_none=True) as proxy:
             proxy.rpc_fromCopyToFile(f["file"])
 
-def serverHandler(newHost):
+def serverHandler(myHost, myPort, usrHost, usrPort):
     """! Configura e inicia o servidor RPC do usuário.
     
     @param newHost Host que o usuário utilizará.
     """
 
-    global host, port, server
-    openPort = 0
+    global host, port, server, allUsers
 
-    host = newHost
+    host = myHost
+    port = myPort
 
-    # Verifica se ha outros usuarios online no mesmo host
-    while(port < 8004):
-        try:
-            if server == None:
-                server = SimpleXMLRPCServer((host, port), allow_none=True, logRequests=False)
-                openPort = port
-        except OSError:
-            allUsers.append( {"host": host, "port": port} )
-        finally:
-            port += 1
+    # Tenta criar o socket do server
+    try:
+        server = SimpleXMLRPCServer((host, port), allow_none=True, logRequests=False)
+    except OSError:
+        print(f"Outro usuario ja existe no endereco {host}:{port}")
+        exit(0)
     
-    port = openPort
-
-    # avisando outros usuarios que um novo host conectou
-    if len(allUsers) > 0:
-        if server != None:
-            for user in allUsers:
-                with xmlrpc.client.ServerProxy(f"http://{user['host']}:{user['port']}/", allow_none=True) as proxy:
-                    proxy.rpc_newUser(host, port)
-
-        else:
-            print("Numero maximo de usuarios ja alcançado!")
+    # Tenta fazer contato com o outro usuario passado, se ele foi passado
+    if (usrHost != None) and (usrPort != None):
+        try:
+            with xmlrpc.client.ServerProxy(f"http://{usrHost}:{usrPort}/", allow_none=True) as proxy:
+                allUsers = proxy.rpc_connToUser(host, port)
+        except:
+            print(f"Nao foi encontrado o usuario p/ se conctar no endereco {usrHost}:{usrPort}")
             exit(0)
 
+        # Verifica se usuario foi conectado
+        if allUsers == None:
+            print(f"Numero maximo de usuarios alcancado na rede do usuario {usrHost}:{usrPort}")
+            exit(0)
+    
+    # Caso n for passado outro usuario, ele se adiciona nem allUsers
+    else:
+        rpc_newUser(host, port)
+
+    # Verifica se ha outros usuarios online no mesmo host
+    # while(port < 8004):
+    #     try:
+    #         if server == None:
+    #             server = SimpleXMLRPCServer((host, port), allow_none=True, logRequests=False)
+    #             openPort = port
+    #     except OSError:
+    #         allUsers.append( {"host": host, "port": port} )
+    #     finally:
+    #         port += 1
+    
+    # port = openPort
+
+    # avisando outros usuarios que um novo host conectou
+    # if len(allUsers) > 0:
+    #     if server != None:
+    #         for user in allUsers:
+    #             with xmlrpc.client.ServerProxy(f"http://{user['host']}:{user['port']}/", allow_none=True) as proxy:
+    #                 proxy.rpc_newUser(host, port)
+
+    #     else:
+    #         print("Numero maximo de usuarios ja alcançado!")
+    #         exit(0)
+
     # usuario se adiciona tmb
-    allUsers.append( {"host": host, "port": port} )
+    # allUsers.append( {"host": host, "port": port} )
 
     server.register_function(rpc_newUser, "rpc_newUser")
     server.register_function(rpc_getFilesList, "rpc_getFilesList")
@@ -386,17 +432,7 @@ def serverHandler(newHost):
     server.register_function(rpc_renameFile, "rpc_renameFile")
     server.register_function(rpc_removeCopy, "rpc_removeCopy")
     server.register_function(rpc_removeFile, "rpc_removeFile")
+    server.register_function(rpc_connToUser, "rpc_connToUser")
     
     server.serve_forever()
 
-
-if __name__ == "__main__":
-    try:
-        # host = sys.argv[1]
-        host = "localhost"
-    except:
-        print("Eh necessario passar como argumento o endereco. Ex:")
-        print("\tpython app.py localhost")
-        exit(0)
-    
-    serverHandler(host)

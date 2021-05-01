@@ -6,8 +6,12 @@
 # @section description_main Descrição
 # Documentação do trabalho 6 da disciplina de Sistemas Operacionais
 # @section how_works Como Funciona
-# Para testar o sistema, coloque ele em diferentes diretórios e abra um terminal no src de cada diretório. Em cada terminal, para rodar os usuarios, entre com:<br/>
-# > python client.py localhost
+# Para testar o sistema, coloque ele em diferentes diretórios e máquinas e abra um terminal no src de cada diretório. Em um dos terminais, entre o comando:<br/>
+# > python client.py A.B.C.D PORT1
+# - Onde A.B.C.D e PORT1 são, respectivamente, o endereço ip e a porta da máquina.<br/>
+# Nos outros outros terminais entre o comando: <br />
+# > python client.py E.F.G.H PORT2 A.B.C.D PORT1
+# - Onde E.F.G.H PORT2 representam o endereço e porta dessa máquina e A.B.C.D PORT1 representam o endereço e porta da primeira máquina conectada
 #
 # @section libraries_main Libraries/Modules
 # - os e shutil
@@ -103,13 +107,25 @@ def clientHandler():
 
 def init():
     """! Inicia o cliente."""
-    host = None
     try:
-        host = sys.argv[1]
+        myHost = sys.argv[1]
+        myPort = int(sys.argv[2])
+        usrHost = sys.argv[3]
+        usrPort = int(sys.argv[4])
     except:
-        print("Eh necessario passar como argumento o endereco. Ex:")
-        print("\tpython app.py localhost")
-        exit(0)
+        if len(sys.argv) < 3:
+            print("\nEh necessario passar como argumento (obrigatoraimente) endereco e porta desse usuario,")
+            print("e (opcional) endereco e porta de outra maquina conectada no sistema. Ex:")
+            print("\tCaso queira iniciar um novo sistema:")
+            print("\t\tpython app.py localhost 8000\n")
+            print("\tCaso queira entrar num sistema ja aberto:")
+            print("\t\tpython app.py 172.30.1.29 8000 172.30.1.27 8000")
+            print("Onde 172.30.1.29:8000 eh o endereco dessa maquina, e 172.30.1.27:8000 eh o endereco de")
+            print("uma maquina ja conectada ao sistema")
+            exit(0)
+        else:
+            usrHost = None
+            usrPort = None
 
     # Criando a pasta dos arquivos
     if os.path.exists('files'):
@@ -126,7 +142,7 @@ def init():
         shutil.rmtree('aux')
     
     # se conecta a rede de usuarios
-    svrThr = threading.Thread(target=svr.serverHandler, args=(host,))
+    svrThr = threading.Thread(target=svr.serverHandler, args=(myHost, myPort, usrHost, usrPort,))
     svrThr.start()
 
     clientHandler()
